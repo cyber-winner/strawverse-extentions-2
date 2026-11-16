@@ -2,14 +2,14 @@
   "Anime": [
     {
       "name": "animesalt",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Regional multi-language dubbed anime streaming.",
       "MinAppVersion": "11.1.1",
       "disabled": false
     },
     {
       "name": "reanime",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "Stream high-definition anime with subbed and dubbed multi-server playback from Re:ANIME.",
       "MinAppVersion": "11.1.1",
       "disabled": false
