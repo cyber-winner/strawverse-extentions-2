@@ -269,6 +269,10 @@ function nodeHttpsStreamAdapter(config) {
               data = JSON.parse(text);
             } catch (_) {}
 
+            if (typeof data === "string" && data.includes("#EXTM3U")) {
+              data = absolutizeM3u8Manifest(data, currentUrl);
+            }
+
             handleValidateStatus(createResponse(data));
           });
         });
@@ -301,18 +305,60 @@ function nodeHttpsStreamAdapter(config) {
   });
 }
 
+function absolutizeM3u8Manifest(manifestText, baseUrl) {
+  if (typeof manifestText !== "string" || !manifestText.includes("#EXTM3U")) {
+    return manifestText;
+  }
+  return manifestText
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return line;
+      if (trimmed.startsWith("#")) {
+        return trimmed.includes('URI="')
+          ? trimmed.replace(/URI="([^"]+)"/g, (full, u) => {
+              if (!u || /^https?:\/\//i.test(u)) return full;
+              try {
+                return `URI="${new URL(u, baseUrl).toString()}"`;
+              } catch (_) {
+                return full;
+              }
+            })
+          : line;
+      }
+      if (/^https?:\/\//i.test(trimmed)) return line;
+      try {
+        return new URL(trimmed, baseUrl).toString();
+      } catch (_) {
+        return line;
+      }
+    })
+    .join("\n");
+}
+
 function installStreamProxyInterceptor() {
   if (!global.axios || !global.axios.interceptors?.request) return;
 
-  if (global.__strawverseStreamInterceptorId !== undefined) {
+  if (global.__animesaltStreamInterceptorId !== undefined) {
     try {
       global.axios.interceptors.request.eject(
-        global.__strawverseStreamInterceptorId
+        global.__animesaltStreamInterceptorId
       );
     } catch (_) {}
   }
 
-  global.__strawverseStreamInterceptorId =
+  if (
+    global.__animesaltResponseInterceptorId !== undefined &&
+    global.axios.interceptors?.response
+  ) {
+    try {
+      global.axios.interceptors.response.eject(
+        global.__animesaltResponseInterceptorId
+      );
+    } catch (_) {}
+  }
+
+  global.__animesaltStreamInterceptorId =
     global.axios.interceptors.request.use(
       (config) => {
         try {
@@ -411,6 +457,28 @@ function installStreamProxyInterceptor() {
       },
       (err) => Promise.reject(err)
     );
+
+  if (global.axios.interceptors?.response) {
+    global.__animesaltResponseInterceptorId =
+      global.axios.interceptors.response.use(
+        (response) => {
+          try {
+            const reqUrl = String(response?.config?.url || "");
+            if (
+              typeof response?.data === "string" &&
+              response.data.includes("#EXTM3U") &&
+              (reqUrl.includes("ravok.buzz") ||
+                reqUrl.includes("as-cdn") ||
+                reqUrl.includes("animesalt"))
+            ) {
+              response.data = absolutizeM3u8Manifest(response.data, reqUrl);
+            }
+          } catch (_) {}
+          return response;
+        },
+        (err) => Promise.reject(err)
+      );
+  }
 }
 
 try {
@@ -2312,7 +2380,7 @@ async function healId({ oldId, malid, title, folderName }) {
 
 module.exports = {
   name: "animesalt",
-  version: "1.0.9",
+  version: "1.0.10",
   baseUrl,
   headerRules,
   subrequestHeaders,
