@@ -2,8 +2,8 @@
   "Anime": [
     {
       "name": "animesalt",
-      "version": "1.0.8",
-      "description": "Regional multi-language dubbed anime streaming.",
+      "version": "1.0.9",
+      "description": "Multi-server Hindi, Tamil, Telugu, English & Japanese dubbed/subbed anime streaming (animesalt.cx + animesalt.ro).",
       "MinAppVersion": "12.0.2",
       "disabled": false
     },
